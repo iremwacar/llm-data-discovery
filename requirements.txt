@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+python-dotenv
+requests
+scikit-learn
+numpy
+psycopg2-binary
+cryptography

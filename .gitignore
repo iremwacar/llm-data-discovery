@@ -1,0 +1,4 @@
+.env
+secret.key
+system_metadata.db
+__pycache__/
