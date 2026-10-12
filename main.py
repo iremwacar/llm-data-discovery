@@ -74,17 +74,20 @@ def get_db():
     finally:
         db.close()
 
-# --- 12 KATEGORİ İÇİN ZENGİNLEŞTİRİLMİŞ SEMANTİK PROTOTİPLER ---
+# --- 13 KATEGORİ İÇİN SEMANTİK PROTOTİPLER ---
 CATEGORY_PROTOTYPES = {
     "Email Address": "Kişisel ve kurumsal e-posta adresleri. Örnek: ahmet.yilmaz@gmail.com, info@sirketim.com.tr, user@yahoo.com",
     "Phone Number": "Mobil, sabit hat ve uluslararası telefon numaraları. Örnek: +905321234567, 0555 123 45 67, +1-555-123-4567",
     "Social Security Number (SSN)": "Amerikan sosyal güvenlik numarası. Örnek: 123-45-6789, 987-65-4321",
+    "Credit Card Number": "Kredi kartı veya banka kartı numaraları, maskelenmiş kart numaraları. Örnek: 4532-1234-5678-9012, ****-****-****-1234, 5555555555554444",
     "National ID Number": "Pasaport numarası veya yabancı kimlik kartları. Örnek: U12345678, A9876543, P-123456",
     "Full Name": "Kişilerin hem adı hem de soyadını içeren tam isimler. Örnek: Ahmet Yılmaz, Ayşe Fatma Kaya, John Doe, Zeynep Çelik",
     "First Name": "Kişilerin SADECE ilk adları (soyisim yok). Örnek: Ahmet, Mehmet, Ayşe, Fatma, John, Sarah",
     "Last Name / Surname": "Kişilerin SADECE soyadları (isim yok). Örnek: Yılmaz, Kaya, Demir, Smith, Johnson",
+    "TCKN (Turkish Citizenship Number)": "Türkiye Cumhuriyeti 11 haneli kimlik numarası. Örnek: 12345678901, 98765432109",
     "Home Address": "Açık ev veya iş adresleri. Sokak, bina no, kat, mahalle, ilçe, şehir, posta kodu içerir. Örnek: Atatürk Mah. Cumhuriyet Sok. No:5 Daire:12 Kadıköy/İstanbul",
     "Date of Birth": "Kişilerin doğum tarihleri. Örnek: 1990-05-15, 15/05/1990, 22.11.1985",
+    "IP Address": "IPv4 veya IPv6 internet protokol adresleri. Örnek: 192.168.1.1, 10.0.0.50, 2001:0db8:85a3:0000:0000:8a2e:0370:7334",
     "Non_PII": "Kişisel veri OLMAYAN sıradan metinler, şirket adları, ürün açıklamaları, rastgele ID'ler, tarihler veya teknik veriler."
 }
 
@@ -129,29 +132,47 @@ def is_luhn_credit_card(val: str) -> bool:
     return total % 10 == 0
 
 def evaluate_deterministic_rules(samples: list) -> dict:
-    counts = {"TCKN (Turkish Citizenship Number)": 0, "Credit Card Number": 0, "Email Address": 0, "IP Address": 0}
+    counts = {
+        "TCKN (Turkish Citizenship Number)": 0,
+        "Credit Card Number": 0,
+        "Email Address": 0,
+        "IP Address": 0
+    }
     total = len(samples)
-    if total == 0: return None
+    if total == 0:
+        return None
     
     for s in samples:
-        s = str(s).strip()
-        if is_tckn(s): counts["TCKN (Turkish Citizenship Number)"] += 1
-        elif is_luhn_credit_card(s): counts["Credit Card Number"] += 1
-        elif re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', s): counts["Email Address"] += 1
-        elif re.match(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', s): counts["IP Address"] += 1
+        # Metin temizleme: Baştaki/sondaki boşlukları ve tırnak işaretlerini kaldır
+        s_clean = str(s).strip().strip("'\"")
+        
+        if is_tckn(s_clean):
+            counts["TCKN (Turkish Citizenship Number)"] += 1
+        elif is_luhn_credit_card(s_clean):
+            counts["Credit Card Number"] += 1
+        elif re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', s_clean):
+            counts["Email Address"] += 1
+        elif re.match(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', s_clean):
+            counts["IP Address"] += 1
             
     for label, count in counts.items():
+        # Örneklerin yarıdan fazlası kurala uyuyorsa deterministik kararı ver
         if count >= total / 2 and count > 0:
             prob = round(count / total, 2)
             probs_dict = {
-                "Email Address": 0, "Phone Number": 0, "Social Security Number (SSN)": 0,
-                "Credit Card Number": 0, "National ID Number": 0, "Full Name": 0,
-                "First Name": 0, "Last Name / Surname": 0, "TCKN (Turkish Citizenship Number)": 0,
-                "Home Address": 0, "Date of Birth": 0, "IP Address": 0, "Non_PII": 0
+                "Email Address": 0.0, "Phone Number": 0.0, "Social Security Number (SSN)": 0.0,
+                "Credit Card Number": 0.0, "National ID Number": 0.0, "Full Name": 0.0,
+                "First Name": 0.0, "Last Name / Surname": 0.0, "TCKN (Turkish Citizenship Number)": 0.0,
+                "Home Address": 0.0, "Date of Birth": 0.0, "IP Address": 0.0, "Non_PII": 0.0
             }
             probs_dict[label] = prob
             probs_dict["Non_PII"] = round(1.0 - prob, 2)
-            return {"primary_label": label, "confidence_score": prob, "probabilities": probs_dict, "is_sensitive_pii": True}
+            return {
+                "primary_label": label,
+                "confidence_score": prob,
+                "probabilities": probs_dict,
+                "is_sensitive_pii": True
+            }
     return None
 
 def get_openai_chat_completion(prompt: str, api_key: str) -> dict:

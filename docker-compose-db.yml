@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    container_name: llm_discovery_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Yenisifre12345
+      POSTGRES_DB: llm_discovery_demo
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./init.sql.sql:/docker-entrypoint-initdb.d/init.sql
