@@ -45,3 +45,37 @@ To test the semantic schema mapping capabilities, run the standalone Python scri
 python etl_migration_job.py
 ```
 This script reads the target database, utilizes SQL JOINs based on `customer_id`, and consolidates all scattered PII data into a unified, clean `pii_master_vault` table.
+
+### 📋 Task 2: Java Migration Methodology & AI Prompt Log
+
+The full Python FastAPI system was ported to Java 21 / Spring Boot 3 using an iterative AI-guided migration strategy[cite: 10].
+
+#### Step 1: Framework & Dependency Setup
+* **User Prompt:**
+  > "Sen kıdemli bir yazılım mühendisisin. Python ve Java dillerini çok iyi biliyor ve donuştürmeler yapabiliyorsun. FastAPI ile yazılmış bir PII veri keşfi ve sınıflandırma projesini Java Spring Boot 3 ve Java 21 mimarisine taşıyacağız. Proje için gerekli Maven `pom.xml` bağımlılıklarını (Spring Web, Spring Data JPA, Spring Security, Lombok, SQLite JDBC, Jackson, SpringDoc OpenAPI) oluşturabilmem için beni yönlendir."
+* **AI Action & Output:** Generated the complete `pom.xml` configuration including `springdoc-openapi-starter-webmvc-ui` for Swagger UI access.
+
+#### Step 2: Security & Encryption Layer Implementation
+* **User Prompt:**
+  > "FastAPI'deki Basic Auth güvenlik mekanizmasını Spring Security ile kurgula. Ayrıca hedef veritabanı şifrelerini veritabanında güvenle saklamak için AES algoritması kullanan bir `EncryptionService` yaz."
+* **AI Action & Output:** Implemented `SecurityConfig.java` enforcing Basic Authentication (`admin`/`secret`) and created `EncryptionService.java` for AES secret key encryption.
+
+#### Step 3: Metadata Extraction Service (`POST /db/metadata`)
+* **User Prompt:**
+  > "PostgreSQL veritabanı bağlantı bilgilerini alıp, JDBC `DatabaseMetaData` kullanarak veritabanındaki tüm tablo ve kolon bilgilerini çıkartan, kolonlara benzersiz UUID'ler atayan ve SQLite'a kaydeden `MetadataService` ve `MetadataController` sınıflarını yaz."
+* **AI Action & Output:** Built dynamic JDBC metadata extraction logic that saves database schema topologies into JPA entities[cite: 11].
+
+#### Step 4: Swagger UI Integration for API Testing
+* **User Prompt:**
+  > "Python'daki FastAPI `/docs` ekranı gibi tarayıcıdan kolayca test yapabilmemiz için Spring Boot projesine Swagger UI entegrasyonunu nasıl yaparız? Gerekli anotasyonları ve konfigürasyonu sağla."
+* **AI Action & Output:** Integrated SpringDoc OpenAPI UI, exposing the interactive documentation interface at `http://localhost:8080/swagger-ui/index.html`.
+
+#### Step 5: Initial LLM Classification Integration (`POST /classify`)
+* **User Prompt:**
+  > "Hedef veritabanından örnek veriler çekip OpenAI API (`gpt-4o-mini`) modeline gönderen ve 12 PII kategorisinde (EMAIL, PHONE, TCKN, SSN, NAME, ADDRESS vb.) sınıflandırma yapan `ClassificationService` ve `ClassificationController` sınıflarını yaz."
+* **AI Action & Output:** Developed `ClassificationService.java` with dynamic SQL sampling query execution (`LIMIT N`) and OpenAI HTTP REST call structure.
+
+#### Step 6: Formatting LLM Response Output (Jackson Integration)
+* **User Prompt:**
+  > "OpenAI API'den gelen `llm_analysis` yanıtı tek bir string metin olarak kaçış karakterleriyle (`\n`, `\"`) dönüyor. Bunu tarayıcıda temiz ve hiyerarşik bir JSON nesnesi olarak görebilmemiz için Jackson parser kullanarak düzelt."
+* **AI Action & Output:** Modified `ClassificationService` using Jackson `ObjectMapper.readValue(content, Object.class)` to parse raw JSON strings directly into clean, nested Java JSON objects.
